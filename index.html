@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prode con Amigos | Octa & Amigos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- HEADER PRINCIPAL -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <span class="brand-badge">PRODE ⚽</span>
+        <h1>Prode con Amigos</h1>
+      </div>
+
+      <!-- Barra de Usuario Activo -->
+      <div class="user-status-bar" id="userStatusBar">
+        <div class="user-info-pill" id="userInfoPill">
+          <span class="user-avatar" id="userAvatarIcon">👤</span>
+          <span class="user-name" id="currentUserNameDisplay">Invitado</span>
+          <span class="admin-tag hidden" id="adminTagDisplay">👑 Admin (Octa)</span>
+        </div>
+        <button id="btnSwitchUser" class="btn btn-outline btn-sm" title="Cambiar de usuario o iniciar sesión">
+          Cambiar Usuario
+        </button>
+      </div>
+    </div>
+
+    <!-- NAVEGACIÓN DE PESTAÑAS -->
+    <div class="header-nav-container">
+      <nav class="role-selector">
+        <button id="navBtnBets" class="role-btn active">
+          <span>🎯</span> Mis Apuestas
+        </button>
+        <button id="navBtnTable" class="role-btn">
+          <span>📊</span> Tabla & Estadísticas
+        </button>
+        <button id="navBtnAdmin" class="role-btn admin-nav-btn hidden">
+          <span>👑</span> Panel de Octa
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR DE NOTIFICACIONES (TOASTS) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-container">
+
+    <!-- AVISO DE CLOUD SYNC ACTIVA O INACTIVA -->
+    <div id="cloudSyncAlert" class="cloud-sync-banner hidden">
+      <span class="sync-dot"></span>
+      <span id="cloudSyncText">Conectado a la nube en tiempo real</span>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SECCIÓN 1: MIS APUESTAS (JUGADOR / OCTA)       -->
+    <!-- ============================================== -->
+    <section id="viewBets" class="view-section active">
+      <div class="card intro-card">
+        <div class="card-header spread">
+          <div>
+            <h2>🎯 Tus Apuestas (1 al 10)</h2>
+            <p class="text-muted" id="userGreetingText">
+              Elegí un número del <strong>1 al 10</strong> para cada apellido. ¡Al final comparamos con los resultados oficiales!
+            </p>
+          </div>
+          <span class="badge badge-pulse" id="apellidosCountBadge">0 Apellidos</span>
+        </div>
+      </div>
+
+      <!-- Lista dinámica de apellidos para votar -->
+      <div id="betsCardsContainer" class="bets-list">
+        <!-- Renderizado dinámico desde JS -->
+      </div>
+
+      <!-- Mensaje si Octa aún no cargó apellidos -->
+      <div id="noApellidosMessage" class="empty-state card hidden">
+        <span class="empty-icon">📝</span>
+        <h3>Todavía no hay apellidos cargados</h3>
+        <p>Octa debe ingresar con su contraseña en el Panel de Administración para definir los apellidos del prode.</p>
+        <button id="btnOpenOctaLoginFromEmpty" class="btn btn-primary">Iniciar sesión como Octa</button>
+      </div>
+
+      <!-- Barra de acción flotante para guardar -->
+      <div id="betsActionFooter" class="card action-footer">
+        <div class="footer-summary">
+          <span id="footerProgressText">0 de 0 apellidos completados</span>
+          <div class="progress-bar-bg">
+            <div id="footerProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="footer-buttons">
+          <button id="btnSaveMyBet" class="btn btn-success btn-lg">
+            <span>💾</span> Guardar Mis Apuestas
+          </button>
+          <button id="btnShareWhatsAppBet" class="btn btn-whatsapp btn-lg">
+            <span>📲</span> Enviar Apuesta a Octa por WhatsApp
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- SECCIÓN 2: TABLA GENERAL & ESTADÍSTICAS        -->
+    <!-- ============================================== -->
+    <section id="viewTable" class="view-section hidden">
+
+      <!-- TARJETA PODIO & GANADOR (CUANDO OCTA CARGA RESULTADOS) -->
+      <div id="podiumSection" class="card podium-card hidden">
+        <div class="card-header centered">
+          <span class="trophy-icon">🏆</span>
+          <h2>¡Ganadores del Prode!</h2>
+          <p class="text-muted">Quién se acercó más a los números oficiales de cada apellido.</p>
+        </div>
+
+        <div id="podiumGrid" class="podium-grid">
+          <!-- Renderizado dinámico de medallas -->
+        </div>
+
+        <!-- Estadísticas destacadas de precisión -->
+        <div class="stats-highlight-row" id="statsHighlightsRow">
+          <!-- Renderizado de: Mejor puntería, Más plenos, El tiro más lejano -->
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS DETALLADAS: QUIÉN SE ACERCÓ MÁS POR APELLIDO -->
+      <div id="breakdownSection" class="card hidden">
+        <div class="card-header">
+          <h3>🎯 Quién se acercó más en cada Apellido</h3>
+          <p class="text-muted">Detalle de ganadores individuales por cada apellido apostado:</p>
+        </div>
+        <div id="apellidoBreakdownList" class="apellido-breakdown-grid">
+          <!-- Renderizado dinámico por apellido -->
+        </div>
+      </div>
+
+      <!-- TABLA GENERAL COMPARATIVA -->
+      <div class="card">
+        <div class="card-header spread">
+          <div>
+            <h2>📊 Tabla Comparativa de Todos los Jugadores</h2>
+            <p class="text-muted">Mirá lo que votó cada uno de tus amigos.</p>
+          </div>
+          <span class="badge" id="tableStatusBadge">Esperando resultados finales</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="prode-table" id="comparisonTable">
+            <thead>
+              <tr id="tableHeaderRow">
+                <th>Apellido</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Renderizado de filas -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Estado vacío si nadie apostó -->
+        <div id="emptyTableMessage" class="empty-state hidden">
+          <span class="empty-icon">👥</span>
+          <h3>Aún no hay apuestas registradas</h3>
+          <p>Completá tu apuesta en la pestaña "Mis Apuestas" para aparecer en la tabla.</p>
+        </div>
+      </div>
+
+      <!-- INVITAR AMIGOS -->
+      <div class="card">
+        <div class="card-header">
+          <h3>🔗 Compartir enlace con tus amigos</h3>
+          <p class="text-muted">Pasales este enlace a tus 3 amigos para que entren desde sus celulares:</p>
+        </div>
+        <div class="share-box">
+          <input type="text" id="shareUrlInput" readonly>
+          <button id="btnCopyShareUrl" class="btn btn-secondary">Copiar Enlace</button>
+          <button id="btnWhatsAppShareUrl" class="btn btn-whatsapp">Mandar por WhatsApp</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- SECCIÓN 3: PANEL EXCLUSIVO DE OCTA (ADMIN)     -->
+    <!-- ============================================== -->
+    <section id="viewAdmin" class="view-section hidden">
+      <div class="card admin-banner">
+        <div class="admin-badge">👑 SESIÓN DE OCTA INICIADA</div>
+        <h2>Panel de Control del Administrador</h2>
+        <p class="text-muted">
+          Como administrador podés modificar los apellidos a apostar, cargar las apuestas de tus amigos si te las mandan y registrar los resultados finales oficiales.
+        </p>
+      </div>
+
+      <!-- 1. GESTIÓN DE APELLIDOS -->
+      <div class="card">
+        <div class="card-header spread">
+          <div>
+            <h3>1. Modificar Apellidos</h3>
+            <p class="text-muted">Agregá o eliminá los apellidos que van a jugar en el prode.</p>
+          </div>
+          <button id="btnLoadExampleApellidos" class="btn btn-outline btn-sm">Cargar Ejemplos</button>
+        </div>
+
+        <div class="add-item-form">
+          <input type="text" id="adminNewApellidoInput" placeholder="Escribí un apellido (ej: Pérez, Gómez, Rossi)..." maxlength="30">
+          <button id="btnAdminAddApellido" class="btn btn-primary">
+            <span>➕</span> Agregar
+          </button>
+        </div>
+
+        <div id="adminApellidosChipsList" class="apellidos-chips-container">
+          <!-- Renderizado dinámico de chips con botón de borrar -->
+        </div>
+      </div>
+
+      <!-- 2. CARGAR RESULTADOS FINALES OFICIALES -->
+      <div class="card highlight-card">
+        <div class="card-header spread">
+          <div>
+            <h3>2. Cargar Resultados Finales Oficiales (1 al 10)</h3>
+            <p class="text-muted">Cuando termine el evento, cargá acá los números reales para que el sistema calcule automáticamente quién se acercó más.</p>
+          </div>
+          <button id="btnAdminClearResults" class="btn btn-outline-danger btn-sm">Limpiar Resultados</button>
+        </div>
+
+        <div id="adminFinalResultsGrid" class="results-input-grid">
+          <!-- Selectores del 1 al 10 para cada apellido -->
+        </div>
+
+        <div class="card-footer-action">
+          <button id="btnAdminSaveFinalResults" class="btn btn-success btn-lg">
+            <span>🏆</span> Guardar y Mostrar Estadísticas Finales
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. CARGAR APUESTAS DE AMIGOS (RECIBIDAS POR WHATSAPP O MANUAL) -->
+      <div class="card">
+        <div class="card-header">
+          <h3>3. Cargar Apuestas de Amigos</h3>
+          <p class="text-muted">Si un amigo te envió su apuesta por WhatsApp, pegá su mensaje o cargalo a mano:</p>
+        </div>
+        <div class="import-bet-form">
+          <textarea id="adminImportBetTextarea" rows="2" placeholder="Pegá acá el mensaje de WhatsApp de tu amigo..."></textarea>
+          <div class="form-actions-row">
+            <button id="btnAdminProcessImportBet" class="btn btn-secondary">
+              <span>📥</span> Procesar Apuesta
+            </button>
+            <button id="btnAdminOpenManualBetModal" class="btn btn-outline">
+              <span>✍️</span> Cargar Manualmente
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SINCRONIZACIÓN EN LA NUBE (FIREBASE OPCIONAL) -->
+      <div class="card">
+        <div class="card-header">
+          <h3>🌐 Sincronización en la Nube (Opcional)</h3>
+          <p class="text-muted">
+            Si querés que tus amigos vean tus cambios y vos los de ellos en tiempo real sin mandar links, podés pegar una URL de Firebase Realtime Database gratuita:
+          </p>
+        </div>
+        <div class="cloud-config-form">
+          <input type="text" id="firebaseDbUrlInput" placeholder="Ej: https://mi-prode-rtdb.firebaseio.com">
+          <button id="btnSaveFirebaseUrl" class="btn btn-secondary">Guardar Nube</button>
+        </div>
+      </div>
+
+      <!-- 5. SEGURIDAD Y CONFIGURACIÓN DE CONTRASEÑA -->
+      <div class="card">
+        <div class="card-header spread">
+          <div>
+            <h3>🔒 Cambiar Contraseña de Octa</h3>
+            <p class="text-muted">Contraseña actual por defecto: <code>octa123</code></p>
+          </div>
+        </div>
+        <div class="add-item-form">
+          <input type="password" id="adminNewPasswordInput" placeholder="Nueva contraseña de Octa..." maxlength="30">
+          <button id="btnAdminChangePassword" class="btn btn-outline">Actualizar Contraseña</button>
+        </div>
+      </div>
+
+      <!-- 6. RESPALDOS Y REINICIO -->
+      <div class="card">
+        <div class="card-header">
+          <h3>⚙️ Respaldo y Reinicio</h3>
+        </div>
+        <div class="admin-danger-actions">
+          <button id="btnAdminExportJson" class="btn btn-outline">Descargar Respaldo JSON</button>
+          <button id="btnAdminResetProde" class="btn btn-danger">Reiniciar Todo el Prode</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: LOGIN / IDENTIFICACIÓN DE USUARIO       -->
+  <!-- ============================================== -->
+  <div id="loginModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>👋 ¿Quién sos?</h3>
+        <button id="btnCloseLoginModal" class="close-btn" style="display:none">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="text-muted">
+          Elegí cómo vas a ingresar al Prode:
+        </p>
+
+        <!-- Selector de Modo: Amigo vs Octa -->
+        <div class="login-tabs">
+          <button id="tabFriendLogin" class="login-tab-btn active">👤 Soy un Amigo</button>
+          <button id="tabOctaLogin" class="login-tab-btn">👑 Soy Octa (Admin)</button>
+        </div>
+
+        <!-- FORMULARIO 1: AMIGO (SIN CONTRASEÑA) -->
+        <div id="friendLoginForm" class="login-form-content">
+          <div class="form-group">
+            <label for="inputFriendName">Tu Nombre o Apodo:</label>
+            <input type="text" id="inputFriendName" placeholder="Ej: Lucas, Nico, Juan, Pedro..." maxlength="20" autocomplete="name">
+            <small class="form-hint">No necesitas contraseña. Se guardará tu usuario en este dispositivo.</small>
+          </div>
+          <button id="btnSubmitFriendLogin" class="btn btn-primary btn-lg full-width">
+            Entrar y Apostar 🚀
+          </button>
+        </div>
+
+        <!-- FORMULARIO 2: OCTA (CON CONTRASEÑA) -->
+        <div id="octaLoginForm" class="login-form-content hidden">
+          <div class="form-group">
+            <label for="inputOctaUsername">Usuario:</label>
+            <input type="text" id="inputOctaUsername" value="Octa" readonly>
+          </div>
+          <div class="form-group">
+            <label for="inputOctaPassword">Contraseña de Octa:</label>
+            <input type="password" id="inputOctaPassword" placeholder="Ingresá tu contraseña..." autocomplete="current-password">
+            <small class="form-hint">Por defecto es: <code>octa123</code></small>
+          </div>
+          <button id="btnSubmitOctaLogin" class="btn btn-primary btn-lg full-width">
+            Iniciar como Octa (Admin) 👑
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: CARGA MANUAL DE AMIGO (OCTA)            -->
+  <!-- ============================================== -->
+  <div id="manualBetModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✍️ Cargar Apuesta Manualmente</h3>
+        <button id="btnCloseManualModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="manualFriendName">Nombre del Amigo:</label>
+          <input type="text" id="manualFriendName" placeholder="Ej: Lucas" maxlength="20">
+        </div>
+        <div id="manualBetsList" class="manual-bets-list">
+          <!-- Inputs numéricos generados dinámicamente -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnCancelManualBet" class="btn btn-outline">Cancelar</button>
+        <button id="btnSaveManualFriendBet" class="btn btn-primary">Guardar Apuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>Prode con Amigos &bull; Octa y sus 3 Amigos &bull; Listo para GitHub Pages</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

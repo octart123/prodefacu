@@ -4,7 +4,17 @@ Una aplicación web rápida y moderna para armar un **Prode de apuestas del 1 al
 
 ---
 
+## 🔐 Sistema de Usuarios y Permisos
 
+### 👑 Para vos (Octa):
+1. Al ingresar a la web, seleccionás la pestaña **"👑 Soy Octa (Admin)"**.
+2. Usuario: `Octa`
+3. Contraseña inicial: `octa123` *(la podés cambiar cuando quieras desde tu panel)*.
+4. **Lo que podés hacer como Octa:**
+   - **Modificar los apellidos** (agregar nuevos, editarlos o borrarlos).
+   - **Hacer tus propias apuestas** del 1 al 10 en la pestaña *"Mis Apuestas"*.
+   - **Cargar los resultados finales oficiales** (del 1 al 10) cuando termine el evento.
+   - Cargar las apuestas de tus amigos si te las pasan por WhatsApp o anotarlas a mano.
 
 ### 👤 Para tus 3 Amigos:
 1. Cuando tus amigos abren el enlace desde su celular o computadora, la web les pregunta: *"¿Quién sos?"*.
@@ -33,16 +43,21 @@ Apenas Octa carga los resultados finales oficiales:
 
 ## 🚀 Cómo hostearlo gratis en GitHub Pages (en 2 minutos)
 
-1. **Creá un repositorio en GitHub**:
-   - Entrá a [github.com/new](https://github.com/new)
-   - Nombre: `prode-amigos` (o el que quieras). Marcalo como **Público**.
-2. **Subí los archivos**:
-   - Arrastrá los archivos (`index.html`, `style.css`, `app.js`, `README.md`) al repositorio con el botón **"Add file" > "Upload files"** o mediante git.
+1. **Tu repositorio ya está creado en**:
+   `https://github.com/octart123/prodefacu`
+
+2. **Subí los 4 archivos al repositorio**:
+   - Entrá directo al enlace de subida de GitHub:
+     [https://github.com/octart123/prodefacu/upload/main](https://github.com/octart123/prodefacu/upload/main) (o clic en *"uploading an existing file"*).
+   - Arrastrá los 4 archivos que se te abrieron en la carpeta (`index.html`, `style.css`, `app.js`, `README.md`).
+   - Hacé clic abajo en el botón verde **"Commit changes"**.
+
 3. **Activá GitHub Pages**:
-   - En tu repositorio andá a **Settings** > **Pages**.
+   - En tu repositorio andá a **Settings** > **Pages** (en el menú lateral izquierdo).
    - En **Branch**, seleccioná `main` y la carpeta `/(root)`.
    - Hacé clic en **Save**.
-   - ¡Listo! En 1 minuto tenés tu web online: `https://TU-USUARIO.github.io/prode-amigos/`
+   - ¡Listo! En 1 minuto tu web estará online y funcionando para vos y tus amigos en:
+     👉 **https://octart123.github.io/prodefacu/**
 
 ---
 

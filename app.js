@@ -69,11 +69,10 @@ function saveState() {
   } catch (e) {
     console.error("Error al guardar state:", e);
   }
+}
 
-  // Si hay Firebase configurado, sincronizar
-  if (state.firebaseUrl) {
-    pushToFirebase();
-  }
+function pushToFirebase() {
+  return pushFullStateToFirebase();
 }
 
 function saveAuth(user) {

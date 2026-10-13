@@ -79,12 +79,58 @@ function saveAuth(user) {
   } catch (e) {}
 }
 
-// --- SINCRONIZACIÓN FIREBASE (OPCIONAL EN TIEMPO REAL) ---
-async function pushToFirebase() {
+// --- SINCRONIZACIÓN FIREBASE (TIEMPO REAL INSTANTÁNEO) ---
+let firebaseEventSource = null;
+let firebasePollTimer = null;
+
+async function pushUserBetToFirebase(playerName, picks) {
   if (!state.firebaseUrl) return;
   try {
-    const url = state.firebaseUrl.replace(/\/+$/, "") + "/prode.json";
+    const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+    const url = `${cleanUrl}/prode/bets/${encodeURIComponent(playerName)}.json`;
     await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(picks)
+    });
+  } catch (e) {
+    console.warn("Fallo al guardar apuesta en Firebase:", e);
+  }
+}
+
+async function pushApellidosToFirebase() {
+  if (!state.firebaseUrl) return;
+  try {
+    const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+    await fetch(`${cleanUrl}/prode/apellidos.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.apellidos)
+    });
+  } catch (e) {
+    console.warn("Fallo al guardar apellidos en Firebase:", e);
+  }
+}
+
+async function pushFinalResultsToFirebase() {
+  if (!state.firebaseUrl) return;
+  try {
+    const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+    await fetch(`${cleanUrl}/prode/finalResults.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.finalResults)
+    });
+  } catch (e) {
+    console.warn("Fallo al guardar resultados en Firebase:", e);
+  }
+}
+
+async function pushFullStateToFirebase() {
+  if (!state.firebaseUrl) return;
+  try {
+    const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+    await fetch(`${cleanUrl}/prode.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -95,29 +141,115 @@ async function pushToFirebase() {
       })
     });
   } catch (e) {
-    console.warn("Fallo al sincronizar con Firebase:", e);
+    console.warn("Fallo al guardar estado completo en Firebase:", e);
   }
 }
 
 async function fetchFromFirebase() {
   if (!state.firebaseUrl) return;
   try {
-    const url = state.firebaseUrl.replace(/\/+$/, "") + "/prode.json";
-    const res = await fetch(url);
+    const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+    const res = await fetch(`${cleanUrl}/prode.json`);
     if (res.ok) {
       const cloudData = await res.json();
       if (cloudData) {
-        if (cloudData.apellidos) state.apellidos = cloudData.apellidos;
-        if (cloudData.bets) state.bets = { ...state.bets, ...cloudData.bets };
+        let changed = false;
+        if (cloudData.apellidos && JSON.stringify(cloudData.apellidos) !== JSON.stringify(state.apellidos)) {
+          state.apellidos = cloudData.apellidos;
+          changed = true;
+        }
+        if (cloudData.bets) {
+          const oldBets = JSON.stringify(state.bets);
+          state.bets = { ...state.bets, ...cloudData.bets };
+          if (oldBets !== JSON.stringify(state.bets)) changed = true;
+        }
         if (cloudData.finalResults) {
+          const oldRes = JSON.stringify(state.finalResults);
           state.finalResults = cloudData.finalResults;
           state.hasFinalResults = Object.keys(cloudData.finalResults).length > 0;
+          if (oldRes !== JSON.stringify(state.finalResults)) changed = true;
         }
-        renderApp();
+        if (changed) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          renderApp();
+        }
       }
     }
   } catch (e) {
     console.warn("Error leyendo de Firebase:", e);
+  }
+}
+
+function initRealtimeSync() {
+  if (!state.firebaseUrl) return;
+  const cleanUrl = state.firebaseUrl.replace(/\/+$/, "");
+
+  const banner = document.getElementById("cloudSyncAlert");
+  if (banner) banner.classList.remove("hidden");
+
+  // 1. Carga inicial inmediata
+  fetchFromFirebase();
+
+  // 2. Conectar EventSource (Server-Sent Events) para tiempo real instantáneo
+  try {
+    if (firebaseEventSource) {
+      firebaseEventSource.close();
+      firebaseEventSource = null;
+    }
+
+    firebaseEventSource = new EventSource(`${cleanUrl}/prode.json`);
+
+    const handleEvent = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (!payload) return;
+        const path = payload.path || "/";
+        const data = payload.data;
+
+        if (path === "/" && data) {
+          if (data.apellidos) state.apellidos = data.apellidos;
+          if (data.bets) state.bets = data.bets;
+          if (data.finalResults) {
+            state.finalResults = data.finalResults;
+            state.hasFinalResults = Object.keys(data.finalResults).length > 0;
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          renderApp();
+        } else if (path === "/bets" && data) {
+          state.bets = { ...state.bets, ...data };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          renderApp();
+        } else if (path.startsWith("/bets/")) {
+          const pName = decodeURIComponent(path.replace("/bets/", ""));
+          state.bets[pName] = data;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          showToast(`¡${pName} acaba de guardar su apuesta en vivo! ⚡`, "info");
+          renderApp();
+        } else if (path === "/apellidos" && data) {
+          state.apellidos = data;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          renderApp();
+        } else if (path === "/finalResults" && data) {
+          state.finalResults = data;
+          state.hasFinalResults = Object.keys(data).length > 0;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          showToast("¡Octa acaba de publicar los resultados finales! 🏆", "success");
+          renderApp();
+        }
+      } catch (err) {
+        console.warn("Error procesando SSE de Firebase:", err);
+      }
+    };
+
+    firebaseEventSource.addEventListener("put", handleEvent);
+    firebaseEventSource.addEventListener("patch", handleEvent);
+  } catch (err) {
+    console.warn("EventSource no soportado en este entorno:", err);
+  }
+
+  // 3. Polling de respaldo cada 3 segundos
+  if (!firebasePollTimer) {
+    firebasePollTimer = setInterval(fetchFromFirebase, 3000);
   }
 }
 
@@ -169,12 +301,9 @@ document.addEventListener("DOMContentLoaded", () => {
     renderApp();
   }
 
-  // Si hay Firebase configurado, intentar sincronizar cada 15 segundos
+  // Si hay Firebase configurado, iniciar sincronización en tiempo real
   if (state.firebaseUrl) {
-    fetchFromFirebase();
-    setInterval(fetchFromFirebase, 15000);
-    const cloudBanner = document.getElementById("cloudSyncAlert");
-    if (cloudBanner) cloudBanner.classList.remove("hidden");
+    initRealtimeSync();
   }
 });
 
@@ -199,6 +328,7 @@ function checkUrlParams() {
         if (!state.apellidos.includes(a)) state.apellidos.push(a);
       });
       saveState();
+      if (state.firebaseUrl) pushUserBetToFirebase(data.player, data.picks);
       showToast(`¡Apuesta de ${data.player} importada con éxito!`, "success");
       window.history.replaceState(null, "", window.location.pathname);
       return;
@@ -217,7 +347,10 @@ function checkUrlParams() {
     const data = decodeData(prodeParam);
     if (data && data.apellidos) {
       state.apellidos = data.apellidos;
-      if (data.firebaseUrl) state.firebaseUrl = data.firebaseUrl;
+      if (data.firebaseUrl) {
+        state.firebaseUrl = data.firebaseUrl;
+        initRealtimeSync();
+      }
       saveState();
       showToast("¡Lista de apellidos actualizada!", "success");
       window.history.replaceState(null, "", window.location.pathname);
@@ -572,6 +705,9 @@ function saveMyBet() {
 
   state.bets[currentUser.name] = { ...currentBetDraft };
   saveState();
+  if (state.firebaseUrl) {
+    pushUserBetToFirebase(currentUser.name, currentBetDraft);
+  }
   showToast(`¡Apuestas de ${currentUser.name} guardadas con éxito!`, "success");
   switchView("table");
 }
@@ -982,6 +1118,7 @@ function adminAddApellido() {
   state.apellidos.push(val);
   input.value = "";
   saveState();
+  if (state.firebaseUrl) pushApellidosToFirebase();
   renderApp();
   showToast(`"${val}" agregado correctamente`, "success");
 }
@@ -990,6 +1127,7 @@ window.adminRemoveApellido = function(idx) {
   const removed = state.apellidos[idx];
   state.apellidos.splice(idx, 1);
   saveState();
+  if (state.firebaseUrl) pushApellidosToFirebase();
   renderApp();
   showToast(`"${removed}" eliminado`, "info");
 };
@@ -1044,6 +1182,9 @@ function adminSaveFinalResults() {
   state.finalResults = results;
   state.hasFinalResults = Object.keys(results).length > 0;
   saveState();
+  if (state.firebaseUrl) {
+    pushFinalResultsToFirebase();
+  }
   renderApp();
   showToast("¡Resultados finales guardados! Mirá las estadísticas en la Tabla", "success");
   switchView("table");
@@ -1173,6 +1314,7 @@ function saveManualFriendBet() {
 
   state.bets[name] = picks;
   saveState();
+  if (state.firebaseUrl) pushUserBetToFirebase(name, picks);
   renderApp();
   closeManualBetModal();
   showToast(`¡Apuesta de ${name} agregada a la tabla!`, "success");
@@ -1197,8 +1339,9 @@ function adminSaveFirebaseUrl() {
   state.firebaseUrl = url;
   saveState();
   if (url) {
-    pushToFirebase();
-    showToast("URL de Firebase guardada y sincronizada", "success");
+    initRealtimeSync();
+    pushFullStateToFirebase();
+    showToast("URL de Firebase guardada y conectada en tiempo real ⚡", "success");
     document.getElementById("cloudSyncAlert").classList.remove("hidden");
   } else {
     document.getElementById("cloudSyncAlert").classList.add("hidden");

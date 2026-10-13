@@ -8,7 +8,8 @@
  */
 
 // --- CONFIGURACIÓN & ESTADO POR DEFECTO ---
-const DEFAULT_APELLIDOS = ["Pérez", "González", "Rodríguez", "Fernández"];
+const DEFAULT_FIREBASE_URL = "https://prodefacu-default-rtdb.firebaseio.com";
+const DEFAULT_APELLIDOS = ["Pelegrina", "Silvestrini", "Deloche", "Videla", "Bogisic", "Ainoa"];
 const DEFAULT_OCTA_PASS = "octa123";
 
 let state = {
@@ -18,7 +19,7 @@ let state = {
   finalResults: {},  // { [apellido]: number }
   hasFinalResults: false,
   adminPassword: DEFAULT_OCTA_PASS,
-  firebaseUrl: ""    // URL opcional de Firebase Realtime Database
+  firebaseUrl: DEFAULT_FIREBASE_URL
 };
 
 // Usuario actualmente conectado en este navegador
@@ -41,6 +42,9 @@ function loadState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state = { ...state, ...parsed };
+      if (!state.firebaseUrl) {
+        state.firebaseUrl = DEFAULT_FIREBASE_URL;
+      }
       if (state.finalResults && Object.keys(state.finalResults).length > 0) {
         state.hasFinalResults = true;
       }
@@ -298,8 +302,8 @@ document.addEventListener("DOMContentLoaded", () => {
     openLoginModal();
   } else {
     updateUserInterfaceForRole();
-    renderApp();
   }
+  renderApp();
 
   // Si hay Firebase configurado, iniciar sincronización en tiempo real
   if (state.firebaseUrl) {

@@ -4,17 +4,7 @@ Una aplicación web rápida y moderna para armar un **Prode de apuestas del 1 al
 
 ---
 
-## 🔐 Sistema de Usuarios y Permisos
 
-### 👑 Para vos (Octa):
-1. Al ingresar a la web, seleccionás la pestaña **"👑 Soy Octa (Admin)"**.
-2. Usuario: `Octa`
-3. Contraseña inicial: `octa123` *(la podés cambiar cuando quieras desde tu panel)*.
-4. **Lo que podés hacer como Octa:**
-   - **Modificar los apellidos** (agregar nuevos, editarlos o borrarlos).
-   - **Hacer tus propias apuestas** del 1 al 10 en la pestaña *"Mis Apuestas"*.
-   - **Cargar los resultados finales oficiales** (del 1 al 10) cuando termine el evento.
-   - Cargar las apuestas de tus amigos si te las pasan por WhatsApp o anotarlas a mano.
 
 ### 👤 Para tus 3 Amigos:
 1. Cuando tus amigos abren el enlace desde su celular o computadora, la web les pregunta: *"¿Quién sos?"*.
